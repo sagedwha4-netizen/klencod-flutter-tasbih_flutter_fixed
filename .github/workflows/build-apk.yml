@@ -1,0 +1,50 @@
+name: Build Tasbih APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # Generate a fresh Android project using the current V2 embedding.
+      # This prevents the deleted Android v1 embedding error.
+      - name: Generate modern Android platform files
+        run: flutter create --platforms=android --org com.sajid --project-name tasbih .
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tasbih-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
